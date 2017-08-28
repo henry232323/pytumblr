@@ -1,31 +1,55 @@
-import urllib
-import urllib2
+from urllib.parse import parse_qsl, urlencode
 import time
-import json
+import asyncio
+from hashlib import sha1
 
-from urlparse import parse_qsl
-import oauth2 as oauth
-from httplib2 import RedirectLimit
+from aioauth_client import OAuth1Client, HmacSha1Signature, random
 
-class TumblrRequest(object):
+
+class TumblrRequest(OAuth1Client):
     """
     A simple request object that lets us query the Tumblr API
     """
 
-    __version = "0.0.7";
+    __version = "0.0.1"
+    host: str = ""
+    headers: dict = None
+    loop: asyncio.AbstractEventLoop
 
-    def __init__(self, consumer_key, consumer_secret="", oauth_token="", oauth_secret="", host="https://api.tumblr.com"):
+    def __init__(self,
+                 loop: asyncio.AbstractEventLoop,
+                 consumer_key: str,
+                 consumer_secret: str,
+                 oauth_token: str=None,
+                 oauth_secret: str=None,
+                 host="https://api.tumblr.com",
+                 access_token_url="https://api.tumblr.com/access_token",
+                 request_token_url="https://www.tumblr.com/oauth/request_token",
+                 authorize_url="https:/f/www.tumblr.com/oauth/authorize",
+                 headers=None):
+        super(__class__, self).__init__(consumer_key=consumer_key,
+                                        consumer_secret=consumer_secret,
+                                        base_url=host,
+                                        access_token_url=access_token_url,
+                                        oauth_token=oauth_token,
+                                        oauth_token_secret=oauth_secret,
+                                        signature=HmacSha1Signature(),
+                                        request_token_url=request_token_url,
+                                        authorize_url=authorize_url)
+
+        if headers is None:
+            headers = {}
+
+        self.loop = loop
         self.host = host
-        self.consumer = oauth.Consumer(key=consumer_key, secret=consumer_secret)
-        self.token = oauth.Token(key=oauth_token, secret=oauth_secret)
         self.headers = {
-            "User-Agent" : "pytumblr/" + self.__version
+            "User-Agent": "apytumblr/" + self.__version
         }
+        self.headers.update(headers)
 
-    def get(self, url, params):
+    async def get(self, url: str, params: dict) -> dict:
         """
         Issues a GET request against the API, properly formatting the params
-
         :param url: a string, the url you are requesting
         :param params: a dict, the key-value of all the paramaters needed
                        in the request
@@ -33,96 +57,64 @@ class TumblrRequest(object):
         """
         url = self.host + url
         if params:
-            url = url + "?" + urllib.urlencode(params)
+            url = url + "?" + urlencode(params)
 
-        client = oauth.Client(self.consumer, self.token)
-        try:
-            client.follow_redirects = False
-            resp, content = client.request(url, method="GET", redirections=False, headers=self.headers)
-        except RedirectLimit, e:
-            resp, content = e.args
+        resp = await self.request("GET", url, headers=self.headers)
 
-        return self.json_parse(content)
+        return await resp.json()
 
-    def post(self, url, params={}, files=[]):
+    async def post(self, url: str, params: dict=None, files: list=None):
         """
         Issues a POST request against the API, allows for multipart data uploads
-
         :param url: a string, the url you are requesting
         :param params: a dict, the key-value of all the parameters needed
                        in the request
         :param files: a list, the list of tuples of files
-
         :returns: a dict parsed of the JSON response
         """
         url = self.host + url
-        try:
-            if files:
-                return self.post_multipart(url, params, files)
-            else:
-                client = oauth.Client(self.consumer, self.token)
-                resp, content = client.request(url, method="POST", body=urllib.urlencode(params), headers=self.headers)
-                return self.json_parse(content)
-        except urllib2.HTTPError, e:
-            return self.json_parse(e.read())
+        if params is None:
+            params = {}
+        if files is None:
+            files = []
 
-    def json_parse(self, content):
-        """
-        Wraps and abstracts content validation and JSON parsing
-        to make sure the user gets the correct response.
-        
-        :param content: The content returned from the web request to be parsed as json
-        
-        :returns: a dict of the json response
-        """
-        try:
-            data = json.loads(content)
-        except ValueError, e:
-            data = {'meta': { 'status': 500, 'msg': 'Server Error'}, 'response': {"error": "Malformed JSON or HTML was returned."}}
-        
-        #We only really care about the response if we succeed
-        #and the error if we fail
-        if data['meta']['status'] in [200, 201, 301]:
-            return data['response']
+        if files:
+            return await self.post_multipart(url, params, files)
         else:
-            return data
+            resp = await self.request(url=url, method="POST", body=urlencode(params), headers=self.headers)
+            return await resp.json()
 
-    def post_multipart(self, url, params, files):
+    async def post_multipart(self, url: str, params: dict, files: list):
         """
         Generates and issues a multipart request for data files
-
         :param url: a string, the url you are requesting
         :param params: a dict, a key-value of all the parameters
         :param files:  a list, the list of tuples for your data
-
         :returns: a dict parsed from the JSON response
         """
-        #combine the parameters with the generated oauth params
+        #  combine the parameters with the generated oauth params
         params = dict(params.items() + self.generate_oauth_params().items())
-        faux_req = oauth.Request(method="POST", url=url, parameters=params)
-        faux_req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), self.consumer, self.token)
+        faux_req = self.request(method="POST", url=url, parameters=params)
         params = dict(parse_qsl(faux_req.to_postdata()))
 
         content_type, body = self.encode_multipart_formdata(params, files)
         headers = {'Content-Type': content_type, 'Content-Length': str(len(body))}
 
-        #Do a bytearray of the body and everything seems ok
-        r = urllib2.Request(url, bytearray(body), headers)
-        content = urllib2.urlopen(r).read()
-        return self.json_parse(content)
+        #  Do a bytearray of the body and everything seems ok
+        r = await self.request(url=url, method="POST", body=bytearray(body), headers=headers)
+        return await r.json()
 
-    def encode_multipart_formdata(self, fields, files):
+    @staticmethod
+    def encode_multipart_formdata(fields: dict, files: list):
         """
         Properly encodes the multipart body of the request
-
         :param fields: a dict, the parameters used in the request
         :param files:  a list of tuples containing information about the files
-
         :returns: the content for the body and the content-type value
         """
-        import mimetools
         import mimetypes
-        BOUNDARY = mimetools.choose_boundary()
+        from email.generator import _make_boundary
+        BOUNDARY = _make_boundary()
         CRLF = '\r\n'
         L = []
         for (key, value) in fields.items():
@@ -143,18 +135,17 @@ class TumblrRequest(object):
         content_type = 'multipart/form-data; boundary={0}'.format(BOUNDARY)
         return content_type, body
 
-    def generate_oauth_params(self):
+    def generate_oauth_params(self) -> dict:
         """
         Generates the oauth parameters needed for multipart/form requests
-
         :returns: a dictionary of the proper headers that can be used
                   in the request
         """
         params = {
             'oauth_version': "1.0",
-            'oauth_nonce': oauth.generate_nonce(),
+            'oauth_nonce': sha1(str(random()).encode('ascii')).hexdigest(),
             'oauth_timestamp': int(time.time()),
-            'oauth_token': self.token.key,
-            'oauth_consumer_key': self.consumer.key
+            'oauth_token': self.oauth_token,
+            'oauth_consumer_key': self.consumer_key
         }
         return params

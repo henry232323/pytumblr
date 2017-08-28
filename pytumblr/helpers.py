@@ -1,7 +1,8 @@
 from functools import wraps
+from typing import Callable
 
 
-def validate_params(valid_options, params):
+def validate_params(valid_options, params) -> None:
     """
     Helps us validate the parameters for the request
     :param valid_options: a list of strings of valid options for the
@@ -28,7 +29,7 @@ def validate_params(valid_options, params):
         raise Exception("{0} are not allowed fields".format(field_strings))
 
 
-def validate_blogname(fn):
+def validate_blogname(fn) -> Callable:
     """
     Decorator to validate the blogname and let you pass in a blogname like:
         client.blog_info('codingjester')

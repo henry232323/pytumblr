@@ -1,4 +1,4 @@
-# PyTumblr
+# PyTumblr (AsyncIO)
 
 [![Build Status](https://travis-ci.org/tumblr/pytumblr.png?branch=master)](https://travis-ci.org/tumblr/pytumblr)
 

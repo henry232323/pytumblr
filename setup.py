@@ -4,20 +4,19 @@ from setuptools import setup
 
 setup(
 
-    name="PyTumblr",
-    version="0.0.6",
-    description="A Python API v2 wrapper for Tumblr",
-    author="John Bunting",
-    author_email="johnb@tumblr.com",
-    url="https://github.com/tumblr/pytumblr",
+    name="APyTumblr",
+    version="0.0.7",
+    description="An AsyncIO Python API v2 wrapper for Tumblr",
+    author="henry232323",
+    author_email="henry@rhodochrosite.xyz",
+    url="https://github.com/henry232323/pytumblr",
     packages = ['pytumblr'],
     license = "LICENSE",
 
     test_suite='nose.collector',
 
     install_requires = [
-        'oauth2',
-        'httpretty'
+        'aioauth2-client',
     ],
 
     tests_require=[

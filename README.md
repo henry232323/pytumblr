@@ -8,14 +8,16 @@ A `pytumblr.TumblrRestClient` is the object you'll make all of your calls to the
 Tumblr API through.  Creating one is this easy:
 
 ``` python
+loop = asyncio.get_event_loop()
 client = pytumblr.TumblrRestClient(
+    loop,
     '<consumer_key>',
     '<consumer_secret>',
     '<oauth_token>',
     '<oauth_secret>',
 )
 
-client.info() # Grabs the current user information
+loop.run_until_complete(client.info()) #  Grabs the current user information
 ```
 
 Two easy ways to get your credentials to are:
@@ -28,29 +30,29 @@ Two easy ways to get your credentials to are:
 ### User Methods
 
 ``` python
-client.info() # get information about the authenticating user
-client.dashboard() # get the dashboard for the authenticating user
-client.likes() # get the likes for the authenticating user
-client.following() # get the blogs followed by the authenticating user
+await client.info() # get information about the authenticating user
+await client.dashboard() # get the dashboard for the authenticating user
+await client.likes() # get the likes for the authenticating user
+await client.following() # get the blogs followed by the authenticating user
 
-client.follow('codingjester.tumblr.com') # follow a blog
-client.unfollow('codingjester.tumblr.com') # unfollow a blog
+await client.follow('codingjester.tumblr.com') # follow a blog
+await client.unfollow('codingjester.tumblr.com') # unfollow a blog
 
-client.like(id, reblogkey) # like a post
-client.unlike(id, reblogkey) # unlike a post
+await client.like(id, reblogkey) # like a post
+await client.unlike(id, reblogkey) # unlike a post
 ```
 
 ### Blog Methods
 
 ``` python
-client.blog_info('codingjester') # get information about a blog
-client.posts('codingjester', **params) # get posts for a blog
-client.avatar('codingjester') # get the avatar for a blog
-client.blog_likes('codingjester') # get the likes on a blog
-client.followers('codingjester') # get the followers of a blog
-client.blog_following('codingjester') # get the publicly exposed blogs that `codingjester` follows
-client.queue('codingjester') # get the queue for a given blog
-client.submission('codingjester') # get the submissions for a given blog
+await client.blog_info('codingjester') # get information about a blog
+await client.posts('codingjester', **params) # get posts for a blog
+await client.avatar('codingjester') # get the avatar for a blog
+await client.blog_likes('codingjester') # get the likes on a blog
+await client.followers('codingjester') # get the followers of a blog
+await client.blog_following('codingjester') # get the publicly exposed blogs that `codingjester` follows
+await client.queue('codingjester') # get the queue for a given blog
+await await client.submission('codingjester') # get the submissions for a given blog
 ```
 
 ### Post Methods
@@ -98,7 +100,7 @@ Creating a text post supports the same options as default and just a two other p
 
 ```python
 #Creating a text post
-client.create_text("codingjester", state="published", slug="testing-text-posts", title="Testing", body="testing1 2 3 4")
+await client.create_text("codingjester", state="published", slug="testing-text-posts", title="Testing", body="testing1 2 3 4")
 ```
 
 #####  Creating a quote post
@@ -108,7 +110,7 @@ Creating a quote post supports the same options as default and two other paramet
 
 ```python
 #Creating a quote post
-client.create_quote("codingjester", state="queue", quote="I am the Walrus", source="Ringo")
+await client.create_quote("codingjester", state="queue", quote="I am the Walrus", source="Ringo")
 ```
 
 ##### Creating a link post
@@ -118,7 +120,7 @@ client.create_quote("codingjester", state="queue", quote="I am the Walrus", sour
 
 ```python
 #Create a link post
-client.create_link('codingjester', title="I like to search things, you should too.", url="https://duckduckgo.com", description="Search is pretty cool when a duck does it.")
+await client.create_link('codingjester', title="I like to search things, you should too.", url="https://duckduckgo.com", description="Search is pretty cool when a duck does it.")
 ```
 
 ##### Creating a chat post
@@ -132,7 +134,7 @@ chat = """John: Testing can be fun!
 Renee: Testing is tedious and so are you.
 John: Aw.
 """
-client.create_chat('codingjester', title="Renee just doesn't understand.", conversation=chat, tags=["renee", "testing"])
+await client.create_chat('codingjester', title="Renee just doesn't understand.", conversation=chat, tags=["renee", "testing"])
 ```
 
 ##### Creating an audio post
@@ -144,10 +146,10 @@ cannot use both at the same time.
 * **data**         - a string, the filepath of the audio file you want to upload to Tumblr
 ```python
 #Creating an audio file
-client.create_audio('codingjester', caption="Rock out.", data="/Users/johnb/Music/my/new/sweet/album.mp3")
+await client.create_audio('codingjester', caption="Rock out.", data="/Users/johnb/Music/my/new/sweet/album.mp3")
 
 #lets use soundcloud!
-client.create_audio('codingjester', caption="Mega rock out.", external_url="https://soundcloud.com/skrillex/sets/recess")
+await client.create_audio('codingjester', caption="Mega rock out.", external_url="https://soundcloud.com/skrillex/sets/recess")
 ```
 
 ##### Creating a video post
@@ -159,10 +161,10 @@ it has some restrictions. You cannot use the embed and data parameters at the sa
 
 ```python
 #Creating an upload from YouTube
-client.create_video('codingjester', caption="Jon Snow. Mega ridiculous sword.", embed="http://www.youtube.com/watch?v=40pUYLacrj4")
+await client.create_video('codingjester', caption="Jon Snow. Mega ridiculous sword.", embed="http://www.youtube.com/watch?v=40pUYLacrj4")
 
 #Creating a video post from local file
-client.create_video('codingjester', caption="testing", data="/Users/johnb/testing/ok/blah.mov")
+await client.create_video('codingjester', caption="testing", data="/Users/johnb/testing/ok/blah.mov")
 ```
 
 #### Editing a post
@@ -170,33 +172,33 @@ Updating a post requires you knowing what type a post you're updating. You'll be
 any of the options given above for updates.
 
 ``` python
-client.edit_post(blogName, title="OK", data="/Users/johnb/mega/awesome.jpg"); # edit a post
+await client.edit_post(blogName, title="OK", data="/Users/johnb/mega/awesome.jpg"); # edit a post
 ```
 
 #### Reblogging a Post
 Reblogging a post just requires knowing the post id and the reblog key, which is supplied in the JSON of any post object.
 
 ```python
-client.reblog("codingjester", id=125356, reblog_key="reblog_key")
+await client.reblog("codingjester", id=125356, reblog_key="reblog_key")
 ```
 
 #### Deleting a post
 Deleting just requires that you own the post and have the post id
 ```python
-client.delete_post("codingjester", 123456) # Deletes your post :(
+await client.delete_post("codingjester", 123456) # Deletes your post :(
 ```
 
 A note on tags: When passing tags, as params, please pass them as a list (not
 a comma-separated string):
 
 ``` python
-client.create_text('seejohnrun', tags=['hello', 'world'], ...)
+await client.create_text('seejohnrun', tags=['hello', 'world'], ...)
 ```
 
 ### Tagged Methods
 
 ```python
-client.tagged(tag, **params); # get posts with a given tag
+await client.tagged(tag, **params); # get posts with a given tag
 ```
 
 ## Using the interactive console

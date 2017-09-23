@@ -16,7 +16,7 @@ setup(
     test_suite='nose.collector',
 
     install_requires = [
-        'aioauth2-client',
+        'aioauth-client',
     ],
 
     tests_require=[

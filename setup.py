@@ -8,7 +8,7 @@ setup(
     version="0.0.7",
     description="An AsyncIO Python API v2 wrapper for Tumblr",
     author="henry232323",
-    author_email="henry@rhodochrosite.xyz",
+    author_email="henry@typheus.me",
     url="https://github.com/henry232323/pytumblr",
     packages = ['pytumblr'],
     license = "LICENSE",

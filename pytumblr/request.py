@@ -3,7 +3,8 @@ import time
 import asyncio
 from hashlib import sha1
 
-from aioauth_client import OAuth1Client, HmacSha1Signature, RANDOM
+from aioauth_client import OAuth1Client, HmacSha1Signature
+from aioauth_client import RANDOM as random
 
 
 class TumblrRequest(OAuth1Client):

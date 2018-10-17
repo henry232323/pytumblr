@@ -4,7 +4,8 @@ import asyncio
 from hashlib import sha1
 
 from aioauth_client import OAuth1Client, HmacSha1Signature
-from aioauth_client import RANDOM as random
+from random import SystemRandom
+random = SystemRandom().random # Works on older versions too, no more reliance on aioauth_client version
 
 
 class TumblrRequest(OAuth1Client):
